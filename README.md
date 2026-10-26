@@ -1,10 +1,12 @@
-# CI/CD Final Project
+# ci-cd-final-project
+
+
 
 A small Flask web application used to demonstrate an end-to-end CI/CD workflow with GitHub Actions and OpenShift Pipelines (Tekton).
 
 ## Project details
 
-- **Project name:** CI/CD Final Project
+- Project name: ci-cd-final-project
 - **Application:** Flask web service
 - **Runtime port:** `8000`
 - **Continuous integration:** GitHub Actions (`flake8` linting + `nose` unit tests)
