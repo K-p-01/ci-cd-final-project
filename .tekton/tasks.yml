@@ -1,28 +1,35 @@
-# Task resources for the CI/CD Final Project.
-# Cluster policies may require an approved service account for the Buildah task.
+
+# Tekton tasks for the ci-cd-final-project.
 ---
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: cleanup
 spec:
-  description: Remove leftovers from the shared pipeline workspace before cloning.
+  description: Remove existing workspace files before cloning.
   workspaces:
     - name: source
   steps:
-    - name: cleanup
+    - name: remove
       image: alpine:3.20
+      env:
+        - name: WORKSPACE_SOURCE_PATH
+          value: "$(workspaces.source.path)"
       script: |
         #!/bin/sh
         set -eu
-        find "$(workspaces.source.path)" -mindepth 1 -maxdepth 1 ! -name lost+found -exec rm -rf {} +
+        echo "Removing existing files from WORKSPACE_SOURCE_PATH"
+        find "${WORKSPACE_SOURCE_PATH}" \
+          -mindepth 1 -maxdepth 1 \
+          ! -name lost+found -exec rm -rf {} +
+
 ---
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: git-clone
 spec:
-  description: Clone the requested public Git repository into the shared workspace.
+  description: Clone the requested Git repository.
   params:
     - name: url
       type: string
@@ -37,24 +44,25 @@ spec:
       image: alpine/git:2.45.2
       env:
         - name: REPO_URL
-          value: $(params.url)
+          value: "$(params.url)"
         - name: REVISION
-          value: $(params.revision)
+          value: "$(params.revision)"
       script: |
         #!/bin/sh
         set -eu
         TARGET="$(workspaces.source.path)"
-        git init "$TARGET"
-        git -C "$TARGET" remote add origin "$REPO_URL"
-        git -C "$TARGET" fetch --depth 1 origin "$REVISION"
-        git -C "$TARGET" -c advice.detachedHead=false checkout FETCH_HEAD
+        git init "${TARGET}"
+        git -C "${TARGET}" remote add origin "${REPO_URL}"
+        git -C "${TARGET}" fetch --depth 1 origin "${REVISION}"
+        git -C "${TARGET}" -c advice.detachedHead=false checkout FETCH_HEAD
+
 ---
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: flake8
 spec:
-  description: Run flake8 against the Flask application and its tests.
+  description: Run flake8 lint checks.
   workspaces:
     - name: source
   steps:
@@ -66,31 +74,34 @@ spec:
         cd "$(workspaces.source.path)"
         python -m pip install --no-cache-dir 'flake8>=7.0,<8.0'
         flake8 app.py tests
+
 ---
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: nose
 spec:
-  description: Run the project's nose unit tests.
+  description: Run unit tests with nose.
   workspaces:
     - name: source
   steps:
-    - name: unit-tests
+    - name: run-unit-tests-with-nose
       image: python:3.10-slim
       script: |
         #!/bin/sh
         set -eu
         cd "$(workspaces.source.path)"
+        echo "Run unit tests with nose"
         python -m pip install --no-cache-dir 'setuptools<70' -r requirements.txt 'nose==1.3.7'
         python scripts/run_nose.py
+
 ---
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: buildah
 spec:
-  description: Build and push the application image to the OpenShift internal registry.
+  description: Build and push the application image.
   params:
     - name: image-url
       type: string
@@ -100,12 +111,12 @@ spec:
   steps:
     - name: build-and-push
       image: quay.io/buildah/stable:v1.35.0
-      workingDir: $(workspaces.source.path)
+      workingDir: "$(workspaces.source.path)"
       securityContext:
         privileged: true
       env:
         - name: IMAGE_URL
-          value: $(params.image-url)
+          value: "$(params.image-url)"
         - name: STORAGE_DRIVER
           value: vfs
         - name: BUILDAH_FORMAT
@@ -113,41 +124,55 @@ spec:
       script: |
         #!/bin/sh
         set -eu
-        buildah --storage-driver=vfs bud --format=docker --layers=false -f Dockerfile -t "$IMAGE_URL" .
+        buildah --storage-driver=vfs bud \
+          --format=docker --layers=false \
+          -f Dockerfile -t "${IMAGE_URL}" .
+
         TOKEN="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
         NAMESPACE="$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)"
+
         buildah login --tls-verify=false \
           --username "system:serviceaccount:${NAMESPACE}:pipeline" \
-          --password "$TOKEN" image-registry.openshift-image-registry.svc:5000
-        buildah --storage-driver=vfs push --tls-verify=false "$IMAGE_URL" "docker://$IMAGE_URL"
+          --password "${TOKEN}" \
+          image-registry.openshift-image-registry.svc:5000
+
+        buildah --storage-driver=vfs push --tls-verify=false \
+          "${IMAGE_URL}" "docker://${IMAGE_URL}"
+
 ---
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: openshift-client
 spec:
-  description: Create/update the app Deployment and expose port 8000 as a Service.
+  description: Deploy cicd-app and expose port 8000 as a Service.
   params:
     - name: image-url
       type: string
       description: Full image URL to deploy.
     - name: deployment-name
       type: string
-      default: cicd-final-project
+      default: cicd-app
   steps:
     - name: deploy
       image: quay.io/openshift/origin-cli:4.16
       env:
         - name: IMAGE_URL
-          value: $(params.image-url)
+          value: "$(params.image-url)"
         - name: DEPLOYMENT_NAME
-          value: $(params.deployment-name)
+          value: "$(params.deployment-name)"
       script: |
         #!/bin/sh
         set -eu
-        oc create deployment "$DEPLOYMENT_NAME" --image="$IMAGE_URL" --dry-run=client -o yaml | oc apply -f -
-        oc set env "deployment/$DEPLOYMENT_NAME" PORT=8000
-        oc rollout status "deployment/$DEPLOYMENT_NAME" --timeout=180s
-        if ! oc get service "$DEPLOYMENT_NAME" >/dev/null 2>&1; then
-          oc expose deployment "$DEPLOYMENT_NAME" --port=8000 --name="$DEPLOYMENT_NAME"
+
+        oc create deployment "${DEPLOYMENT_NAME}" \
+          --image="${IMAGE_URL}" \
+          --dry-run=client -o yaml | oc apply -f -
+
+        oc set env "deployment/${DEPLOYMENT_NAME}" PORT=8000
+        oc rollout status "deployment/${DEPLOYMENT_NAME}" --timeout=180s
+
+        if ! oc get service "${DEPLOYMENT_NAME}" >/dev/null 2>&1; then
+          oc expose deployment "${DEPLOYMENT_NAME}" \
+            --port=8000 --name="${DEPLOYMENT_NAME}"
         fi
