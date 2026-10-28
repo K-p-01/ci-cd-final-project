@@ -17,10 +17,12 @@ spec:
       script: |
         #!/bin/sh
         set -eu
-        echo "Removing existing files in WORKSPACE_SOURCE_PATH=${WORKSPACE_SOURCE_PATH}"
-        find "${WORKSPACE_SOURCE_PATH}" -mindepth 1 -maxdepth 1 \
-          ! -name lost+found -exec rm -rf {} +
-        echo "Workspace cleanup completed."
+        echo "Removing files from WORKSPACE_SOURCE_PATH=${WORKSPACE_SOURCE_PATH}"
+        for entry in "${WORKSPACE_SOURCE_PATH:?}/"* "${WORKSPACE_SOURCE_PATH:?}"/.[!.]* "${WORKSPACE_SOURCE_PATH:?}"/..?*; do
+          [ -e "$entry" ] || [ -L "$entry" ] || continue
+          [ "${entry##*/}" = "lost+found" ] && continue
+          rm -rf -- "$entry"
+        done
 ---
 apiVersion: tekton.dev/v1
 kind: Task
