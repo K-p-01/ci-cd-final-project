@@ -1,0 +1,45 @@
+IMPORTANT — exact repository name for this resubmission
+
+Use GitHub repository name: ci-cd-final-project
+GitHub account: K-p-01
+Visibility: Public
+Default branch: main
+
+Why: the latest Coursera feedback explicitly rejected Q2 and Q3 because the URL used cicd-final-project instead of ci-cd-final-project. Keep the README project's display name as cicd-final-project because Q1 already earned full points using that project name. If renaming the existing repository, go to Settings > General > Repository name and rename it to ci-cd-final-project.
+
+The repository should contain these paths at the root:
+- README.md
+- app.py
+- tests/test_app.py
+- requirements.txt
+- requirements-dev.txt
+- scripts/run_nose.py
+- Dockerfile
+- .github/workflows/workflow.yml
+- .tekton/tasks.yml
+- .tekton/pipeline.yml
+- .tekton/pvc.yml
+
+Important rubric fixes:
+- .tekton/tasks.yml has Task metadata.name=cleanup and a step named remove. The step uses WORKSPACE_SOURCE_PATH and deletes workspace contents.
+- The nose task has an explicit run-unit-tests-with-nose step and runs scripts/run_nose.py.
+- pipeline.yml is named oc-pipelines-oc-final and runs cleanup, git-clone, flake8, nose, buildah, deploy in order.
+- PVC is named oc-lab-pvc, storage class skills-network-learner, size 1Gi.
+- Deployment default is cicd-app.
+
+Upload/push:
+1. Extract the ZIP.
+2. If the repository name is still cicd-final-project, rename it in GitHub Settings > General to ci-cd-final-project.
+3. Put the contents of this folder at the repository root, not inside another nested folder.
+4. From your existing local clone, copy these files into it, then run:
+   git add README.md app.py tests requirements.txt requirements-dev.txt scripts Dockerfile .github .tekton .gitignore
+   git status
+   git commit -m "Fix CI/CD final project files and Tekton cleanup"
+   git push origin main
+5. Verify in a browser that the public URLs for README.md, .github/workflows/workflow.yml and .tekton/tasks.yml display the file contents.
+6. Trigger and inspect GitHub Actions. Capture actual OpenShift screenshots/logs from your course environment; this ZIP does not contain genuine cluster evidence.
+
+URLs to use after the rename:
+Q1 (legacy URL, previously full marks): https://github.com/K-p-01/cicd-final-project/blob/main/README.md
+Q2: https://github.com/K-p-01/ci-cd-final-project/blob/main/.github/workflows/workflow.yml
+Q3: https://github.com/K-p-01/ci-cd-final-project/blob/main/.tekton/tasks.yml

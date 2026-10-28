@@ -3,20 +3,20 @@ kind: Pipeline
 metadata:
   name: oc-pipelines-oc-final
 spec:
-  description: "CI/CD pipeline: cleanup, clone, lint, unit tests, container build, deploy."
+  description: "CI/CD pipeline: cleanup, git-clone, flake8, nose, buildah, deploy."
   params:
     - name: git-url
       type: string
-      description: Public HTTPS URL for the GitHub repository.
+      description: Public HTTPS URL of this repository.
     - name: revision
       type: string
       default: main
     - name: image-url
       type: string
-      description: Full image URL in the current OpenShift project's internal registry.
+      description: Full internal registry image URL, including namespace and tag.
     - name: deployment-name
       type: string
-      default: cicd-final-project
+      default: cicd-app
   workspaces:
     - name: shared-workspace
   tasks:
@@ -33,9 +33,9 @@ spec:
         name: git-clone
       params:
         - name: url
-          value: $(params.git-url)
+          value: "$(params.git-url)"
         - name: revision
-          value: $(params.revision)
+          value: "$(params.revision)"
       workspaces:
         - name: source
           workspace: shared-workspace
@@ -62,7 +62,7 @@ spec:
         name: buildah
       params:
         - name: image-url
-          value: $(params.image-url)
+          value: "$(params.image-url)"
       workspaces:
         - name: source
           workspace: shared-workspace
@@ -73,6 +73,6 @@ spec:
         name: openshift-client
       params:
         - name: image-url
-          value: $(params.image-url)
+          value: "$(params.image-url)"
         - name: deployment-name
-          value: $(params.deployment-name)
+          value: "$(params.deployment-name)"

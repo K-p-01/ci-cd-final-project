@@ -1,20 +1,15 @@
-COURSERA FINAL PROJECT — PUBLIC GITHUB URLS
+COURsera CI/CD Tools and Practices Final Project — URL plan
 
-Suggested repository: https://github.com/K-p-01/cicd-final-project
+Exact repository name recommended for Q2/Q3: ci-cd-final-project
+Project name text in README for Q1 rubric: cicd-final-project
 
-Submit these three public file URLs after uploading the files to the repository's main branch:
+Q1 — README URL (previously scored full marks using the legacy slug):
+https://github.com/K-p-01/cicd-final-project/blob/main/README.md
 
-1. README.md (project name/details):
-   https://github.com/K-p-01/cicd-final-project/blob/main/README.md
+Q2 — GitHub Actions workflow:
+https://github.com/K-p-01/ci-cd-final-project/blob/main/.github/workflows/workflow.yml
 
-2. GitHub Actions workflow (flake8 + nose):
-   https://github.com/K-p-01/cicd-final-project/blob/main/.github/workflows/workflow.yml
+Q3 — Tekton tasks:
+https://github.com/K-p-01/ci-cd-final-project/blob/main/.tekton/tasks.yml
 
-3. Tekton tasks (cleanup + nose test task, plus supporting tasks):
-   https://github.com/K-p-01/cicd-final-project/blob/main/.tekton/tasks.yml
-
-Important:
-- These are the expected URLs only if the GitHub username is K-p-01 and the new repository is named cicd-final-project.
-- If you use a different owner/repository name or a different default branch, replace those parts of each URL.
-- Open each URL in a private/incognito browser window before submitting to confirm the repository is public and the file is accessible.
-- These source URLs do NOT replace the actual screenshots and terminal/log text requested by the grader.
+IMPORTANT: URLs become valid after pushing the files to a public repository and the repository rename/name matches. The evaluation feedback has used inconsistent repository slugs across Q1 versus Q2/Q3. Keep the README project name as cicd-final-project and submit the Q2/Q3 links using ci-cd-final-project, as the grader explicitly requested.

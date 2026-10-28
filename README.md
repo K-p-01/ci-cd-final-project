@@ -1,125 +1,81 @@
-# ci-cd-final-project
+# cicd-final-project
 
+**Project name:** `cicd-final-project`  
+**Repository name recommended for this submission:** `ci-cd-final-project`
 
+A small Flask web application for the Coursera CI/CD Tools and Practices final project. It demonstrates GitHub Actions for continuous integration and Tekton/OpenShift Pipelines for container build and deployment.
 
-A small Flask web application used to demonstrate an end-to-end CI/CD workflow with GitHub Actions and OpenShift Pipelines (Tekton).
+![CI](https://github.com/K-p-01/ci-cd-final-project/actions/workflows/workflow.yml/badge.svg)
 
-## Project details
+## Application
 
-- Project name: ci-cd-final-project
-- **Application:** Flask web service
-- **Runtime port:** `8000`
-- **Continuous integration:** GitHub Actions (`flake8` linting + `nose` unit tests)
-- **Continuous delivery:** OpenShift Pipelines / Tekton (`cleanup` → `git-clone` → `flake8` → `nose` → `buildah` → `deploy`)
-- **Container build:** Buildah
-
-## Application endpoints
-
-- `/` — returns a short welcome message.
-- `/health` — returns JSON health status.
-
-The application prints `SERVICERUNNING on port 8000` when started with its default configuration, which makes it easy to verify in actual OpenShift pod logs.
+- Flask service listens on port `8000` by default.
+- `GET /` returns a welcome message.
+- `GET /health` returns a JSON health response.
+- Startup logs include `SERVICERUNNING on port 8000`.
 
 ## Run locally
 
-Python 3.10 is recommended for compatibility with the `nose` runner used in this assignment.
-
-```bash
-python -m venv .venv
-# Windows PowerShell: .venv\Scripts\Activate.ps1
-# macOS/Linux: source .venv/bin/activate
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+python -m pip install "setuptools<70" -r requirements.txt -r requirements-dev.txt
 python app.py
 ```
 
-Open `http://127.0.0.1:8000/` or `http://127.0.0.1:8000/health`.
+On macOS/Linux, activate the virtual environment with `source .venv/bin/activate` instead.
 
-## Run lint and unit tests locally
+Browse to `http://127.0.0.1:8000/` or `http://127.0.0.1:8000/health`.
+
+## Test locally
 
 ```bash
-python -m pip install "setuptools<70" -r requirements-dev.txt -r requirements.txt
-flake8 app.py tests
+flake8 app.py tests scripts
 python scripts/run_nose.py
 ```
 
-Both linting and unit tests are also run by `.github/workflows/workflow.yml` on every push and pull request.
+## GitHub Actions
 
-## Build the container locally
+`.github/workflows/workflow.yml` checks out the repository, installs Python dependencies, runs Flake8 linting, and runs nose unit tests on pushes and pull requests to `main`.
 
-```bash
-docker build -t cicd-final-project:latest .
-docker run --rm -p 8000:8000 cicd-final-project:latest
-```
+## OpenShift / Tekton
 
-## GitHub repository setup
+The `.tekton` directory contains:
 
-1. Create a **public** repository named `cicd-final-project` (or use your preferred repo name).
-2. Upload the contents of this ZIP to the **repository root**. The `.github` and `.tekton` folders must be included.
-3. Commit to the `main` branch.
-4. Open **Actions** in GitHub and confirm the `CI / Lint and unit tests` workflow completes successfully.
+- `tasks.yml`: cleanup (with a `remove` step that deletes files in `WORKSPACE_SOURCE_PATH`), clone, Flake8, nose unit tests, Buildah build/push, and OpenShift deployment.
+- `pipeline.yml`: `oc-pipelines-oc-final`, with the six expected stages in order.
+- `pvc.yml`: 1 GiB PVC named `oc-lab-pvc`, storage class `skills-network-learner`.
 
-Do not submit the ZIP's local path as a Coursera URL. After uploading, use the public GitHub URLs for the files listed in `SUBMISSION_URLS.txt`.
+The cluster's image registry, security constraints, permissions, and installed Tekton version can differ. Apply resources only in your assigned course namespace and follow the course lab's service-account/security instructions.
 
-## OpenShift Pipelines (Tekton)
-
-The `.tekton` folder contains:
-
-- `pvc.yml` — a 1 GiB PVC using the course-required storage class `skills-network-learner`.
-- `tasks.yml` — cleanup, clone, lint, unit-test, Buildah build/push, and OpenShift deployment tasks.
-- `pipeline.yml` — pipeline named `oc-pipelines-oc-final` with the required sequence.
-
-The exact permissions, Buildah security policy, internal image registry permissions, and storage class availability depend on the course's OpenShift cluster. Follow the course lab's cluster setup instructions if the cluster denies any command. Do not replace actual screenshots or logs with sample text.
-
-### Configure and start the pipeline
-
-Run these commands from a terminal that is logged in to the course OpenShift cluster with `oc` and has this repository cloned locally. Check the current project first:
+Example preparation commands from a terminal already logged in to the course cluster:
 
 ```bash
-oc whoami
 oc project
-```
-
-Apply the PVC, tasks, and pipeline:
-
-```bash
 oc apply -f .tekton/pvc.yml
 oc apply -f .tekton/tasks.yml
 oc apply -f .tekton/pipeline.yml
 ```
 
-Grant the default `pipeline` service account permission to push to the internal image registry and manage the deployment, if your course account allows it:
+Check PVC readiness:
 
 ```bash
-oc policy add-role-to-user system:image-builder -z pipeline
-oc policy add-role-to-user edit -z pipeline
+oc get pvc oc-lab-pvc
 ```
 
-If Buildah is blocked by the cluster's security policy, use the Buildah task and service-account setup specified by the course lab rather than weakening cluster security yourself.
+Then start the pipeline with your actual public repository URL and cluster image path. The usage notes in `.tekton/README.md` give an example. A successful run must be verified in your own cluster; source files alone are not evidence that it deployed.
 
-Start a run, substituting your public repository URL if its name differs:
+## Coursera file URLs
 
-```bash
-PROJECT="$(oc project -q)"
-IMAGE="image-registry.openshift-image-registry.svc:5000/${PROJECT}/cicd-final-project:latest"
-tkn pipeline start oc-pipelines-oc-final \
-  -p git-url=https://github.com/K-p-01/cicd-final-project.git \
-  -p revision=main \
-  -p image-url="$IMAGE" \
-  -p deployment-name=cicd-final-project \
-  -w name=shared-workspace,claimName=oc-pipelines-pvc \
-  --showlog
-```
+After the repository is public and these files are pushed to `main`, use the following paths:
 
-Watch the run:
+- README: `https://github.com/K-p-01/cicd-final-project/blob/main/README.md` (GitHub may redirect this legacy repository URL after the repository is renamed).
+- GitHub Actions workflow: `https://github.com/K-p-01/ci-cd-final-project/blob/main/.github/workflows/workflow.yml`
+- Tekton tasks: `https://github.com/K-p-01/ci-cd-final-project/blob/main/.tekton/tasks.yml`
 
-```bash
-oc get pipelinerun
-oc describe pipelinerun
-```
+The rubric previously gave contradictory repository-slug feedback across questions. Keep the project name text `cicd-final-project` in this README while using the repository slug `ci-cd-final-project` for the Q2/Q3 links, which the evaluator explicitly requested.
 
-The pipeline may need small environment-specific adjustments if the provided course cluster has pre-installed Tekton catalog tasks with different parameter names. The task definitions in this repository are a self-contained baseline, not proof that a run completed in your cluster.
+## Required evidence files
 
-## Evidence required for the Coursera submission
-
-See [`evidence/README.md`](evidence/README.md) for the genuine screenshots and output still to capture from your own GitHub and OpenShift runs. Keep those files separate from source code until they have actually been captured.
+See `evidence/README.md`. Capture screenshots and log text from your actual GitHub/OpenShift environment. Do not substitute examples or mockups for genuine run evidence.

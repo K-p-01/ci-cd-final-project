@@ -9,8 +9,6 @@ COPY requirements.txt ./requirements.txt
 RUN python -m pip install --no-cache-dir --upgrade pip \
     && python -m pip install --no-cache-dir -r requirements.txt
 COPY app.py ./app.py
-
-# OpenShift may run the container with an arbitrary UID; make app files group-readable.
 RUN chgrp -R 0 /app && chmod -R g=u /app
 EXPOSE 8000
 CMD ["python", "app.py"]

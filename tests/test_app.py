@@ -6,7 +6,7 @@ from app import app
 
 
 class AppTests(unittest.TestCase):
-    """Basic endpoint checks run by nose."""
+    """Check the application's basic endpoints."""
 
     def setUp(self):
         app.config["TESTING"] = True
@@ -20,10 +20,10 @@ class AppTests(unittest.TestCase):
     def test_health_endpoint(self):
         response = self.client.get("/health")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.get_json(), {
-            "status": "ok",
-            "service": "cicd-final-project",
-        })
+        self.assertEqual(
+            response.get_json(),
+            {"status": "ok", "service": "cicd-final-project"},
+        )
 
 
 if __name__ == "__main__":
